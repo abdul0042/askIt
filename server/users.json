@@ -1,0 +1,18 @@
+[
+  {
+    "id": "1777579688347",
+    "fullName": "Abdul",
+    "firstName": "Abdul",
+    "email": "test@gmail.com",
+    "passwordHash": "$2b$12$ll0Yw/mWhsd55dbYmZXhuO2pMAPrFj6G//yR3u0aie.Vh/o8yOA1S",
+    "createdAt": "2026-04-30T20:08:08.347Z"
+  },
+  {
+    "id": "1777581713190",
+    "fullName": "ba",
+    "firstName": "ba",
+    "email": "te@gmail.com",
+    "passwordHash": "$2b$12$Pt2zVdBvmNDnAXVJtiMej.PjGIXapUaHWnU.Yd0s1Ps5zYvkm/.KC",
+    "createdAt": "2026-04-30T20:41:53.191Z"
+  }
+]
