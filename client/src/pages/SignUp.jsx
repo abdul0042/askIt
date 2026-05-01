@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Mail, Lock, User, Eye, EyeOff, AlertCircle, Sparkles } from 'lucide-react'
-import logo from '../logo.png'
+import logo from '../logo.jpeg'
 import { setAuth, api } from '../auth'
 
 export default function SignUp() {
