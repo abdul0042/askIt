@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import {
   Upload, MessageSquare, FileText, X, Send,
   AlertCircle, CheckCircle2, Layers, ChevronDown, ChevronUp,
-  Trash2, Sparkles, BookOpen, LogOut, Menu, ChevronLeft, Dices, ArrowRight, ArrowLeft, RotateCcw, Download, Brain
+  Trash2, Sparkles, BookOpen, LogOut, Menu, ChevronLeft, Dices, ArrowRight, ArrowLeft, RotateCcw,
+  Download, Brain, Plus, Settings2, PlusCircle, Settings, Sun, Moon
 } from 'lucide-react'
 import logo from './logo.png'
 import ReactMarkdown from 'react-markdown'
@@ -44,10 +45,7 @@ function MessageBubble({ msg }) {
   const isUser = msg.role === 'user'
 
   return (
-    <div className={`message-row ${isUser ? 'user' : ''}`}>
-      <div className={`message-avatar ${isUser ? 'user' : 'ai'}`}>
-        {isUser ? '👤' : <Brain size={18} color="#fff" />}
-      </div>
+    <div className={`message-row ${isUser ? 'user' : 'ai'}`}>
       <div className="message-content">
         <div className={`message-bubble ${isUser ? 'user' : 'ai'}`}>
           {isUser ? (
@@ -257,6 +255,44 @@ export default function App() {
   const [quizIndex, setQuizIndex] = useState(0)
   const [quizAnswers, setQuizAnswers] = useState({})
   const [quizFinished, setQuizFinished] = useState(false)
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false)
+  const [modelMenuOpen, setModelMenuOpen] = useState(false)
+  const [history, setHistory] = useState([])
+  const [textModalOpen, setTextModalOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [theme, setTheme] = useState(() => localStorage.getItem('app-theme') || 'dark')
+  const [pastedText, setPastedText] = useState('')
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [uploadStatus, setUploadStatus] = useState(null)
+  const [showModeSwitcher, setShowModeSwitcher] = useState(true)
+  const lastScrollY = useRef(0)
+  const fileInputRef = useRef(null)
+
+  useEffect(() => {
+    document.body.className = theme === 'light' ? 'light-theme' : ''
+    localStorage.setItem('app-theme', theme)
+  }, [theme])
+
+  const fetchHistory = useCallback(async () => {
+    setHistoryLoading(true)
+    try {
+      const res = await api.get('/history')
+      if (Array.isArray(res.data)) {
+        setHistory(res.data)
+      } else {
+        setHistory([])
+      }
+    } catch (err) {
+      console.error('Failed to fetch history:', err)
+      setHistory([])
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchHistory()
+  }, [fetchHistory])
 
   const touchStartX = useRef(0)
   const touchEndX = useRef(0)
@@ -271,9 +307,34 @@ export default function App() {
     } catch { /* ignore */ }
   }, [])
 
-  const onUploadSuccess = (data) => {
+  const handleScroll = useCallback((e) => {
+    const currentScrollY = e.target.scrollTop
+    if (currentScrollY > lastScrollY.current && currentScrollY > 60) {
+      setShowModeSwitcher(false)
+    } else {
+      setShowModeSwitcher(true)
+    }
+    lastScrollY.current = currentScrollY
+  }, [])
+
+  const onUploadSuccess = (data, meta) => {
     setLastUpload(data)
+    setChunkCount(data.chunks)
+    
+    // Add a visual bubble for the upload
+    const uploadMsg = meta.type === 'pdf' 
+      ? `📄 **Uploaded PDF:** ${meta.name}`
+      : `📝 **Pasted text document** (${meta.length} chars)`
+      
+    setMessages(prev => [...prev, { 
+      role: 'user', 
+      content: uploadMsg, 
+      timestamp: new Date() 
+    }])
+
+    setUploadStatus({ type: 'success', msg: `Successfully indexed ${data.chunks} chunks.` })
     fetchStatus()
+    setTimeout(() => setUploadStatus(null), 4000)
   }
 
   useEffect(() => { fetchStatus() }, [fetchStatus])
@@ -412,6 +473,44 @@ export default function App() {
     navigate('/signin')
   }
 
+
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setLoading(true)
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+      const res = await api.post('/upload', formData)
+      onUploadSuccess(res.data, { type: 'pdf', name: file.name })
+      setLastUpload({ type: 'pdf', name: file.name })
+    } catch (err) {
+      console.error('Upload failed:', err)
+      setUploadStatus({ type: 'error', msg: err.response?.data?.error || 'Upload failed. Please try again.' })
+      setTimeout(() => setUploadStatus(null), 5000)
+    } finally {
+      setLoading(false)
+      if (e.target) e.target.value = '' // Clear input so same file can be re-uploaded
+    }
+  }
+
+  const handleTextUpload = async () => {
+    if (!pastedText.trim()) return
+    setLoading(true)
+    try {
+      const res = await api.post('/upload', { text: pastedText })
+      onUploadSuccess(res.data, { type: 'text', length: pastedText.length })
+      setLastUpload({ type: 'text', text: pastedText })
+      setTextModalOpen(false)
+      setPastedText('')
+    } catch (err) {
+      console.error('Text upload failed:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   async function handleClear() {
     try {
       await api.delete('/clear')
@@ -440,6 +539,7 @@ export default function App() {
       }])
     } finally {
       setLoading(false)
+      fetchHistory() // Refresh history after new message
     }
   }
 
@@ -518,26 +618,68 @@ export default function App() {
             <ChevronLeft size={16} /> Close
           </button>
         </div>
-        <div className="sidebar-inner">
-          <UploadPanel onChunksChange={onUploadSuccess} />
-          <div className="stats-card">
-            <div className="stats-info">
-              <span className="stats-count">{chunkCount}</span>
-              <span className="stats-label">Indexed chunks</span>
-            </div>
-            <div className="stats-icon"><Layers size={20} /></div>
-          </div>
-          {chunkCount > 0 && (
-            <button className="btn-secondary" onClick={handleClear} style={{ width: '100%', justifyContent: 'center' }}>
-              <Trash2 size={14} />Clear All Documents
+        <div className="sidebar-inner-v2">
+          <div className="sidebar-top">
+            <button className="new-chat-btn" onClick={() => { setMessages([]); setLastUpload(null); setChunkCount(0); }}>
+              <PlusCircle size={18} />
+              <span>New Chat</span>
             </button>
-          )}
+
+            <div className="history-section">
+              <div className="sidebar-label">Recent Chats</div>
+              <div className="history-list">
+                {historyLoading ? (
+                  <div className="history-loading-state">
+                    <div className="spinner-v2" style={{ borderColor: 'rgba(255,255,255,0.1)', borderTopColor: 'var(--accent)' }} />
+                    <p>Loading history...</p>
+                  </div>
+                ) : history.length > 0 ? (
+                  history.map(item => (
+                    <button 
+                      key={item.id} 
+                      className="history-item animation-fade-up" 
+                      onClick={() => {
+                        setMessages([
+                          { role: 'user', content: item.question, timestamp: new Date(item.timestamp) },
+                          { role: 'ai', content: item.answer, timestamp: new Date(item.timestamp) }
+                        ])
+                        setSidebarOpen(false)
+                      }}
+                    >
+                      <MessageSquare size={14} />
+                      <div className="history-info">
+                        <span className="history-title">{item.question}</span>
+                        <span className="history-time">{new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' })}</span>
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="history-empty-state">
+                    <MessageSquare size={32} />
+                    <p>No recent chats</p>
+                    <span>Your conversations will appear here.</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="sidebar-bottom">
+            <button className="sidebar-bottom-btn" onClick={() => setSettingsOpen(true)}>
+              <Settings size={18} />
+              <span>Settings</span>
+            </button>
+            <button className="sidebar-bottom-btn logout" onClick={handleLogout}>
+              <LogOut size={18} />
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
       </aside>
 
       {/* ── Chat Panel ─────────────────────────────────────────── */}
       <main className="chat-panel">
-        <div className="mode-switcher-bar">
+        <div className={`mode-switcher-bar ${showModeSwitcher ? 'visible' : 'hidden'}`}>
           <div className="mode-tabs">
             <button className={`mode-tab ${mode === 'chat' ? 'active' : ''}`} onClick={() => setMode('chat')}>
               <MessageSquare size={14} /> Chat Mode
@@ -548,7 +690,7 @@ export default function App() {
           </div>
         </div>
 
-        <div className="messages-area" style={{ flex: 1, overflowY: 'auto' }}>
+        <div className="messages-area" onScroll={handleScroll} style={{ flex: 1, overflowY: 'auto' }}>
           {mode === 'chat' ? (
             messages.length === 0 ? (
             <div className="welcome-screen">
@@ -558,6 +700,12 @@ export default function App() {
               <h1 className="welcome-title">
                 Hey {user?.firstName || 'there'} 👋
               </h1>
+              {uploadStatus && (
+                <div className={`upload-status-alert ${uploadStatus.type} animation-fade-up`}>
+                  {uploadStatus.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                  <span>{uploadStatus.msg}</span>
+                </div>
+              )}
               <p className="welcome-subtitle">
                 Upload a PDF or paste text in the sidebar, then ask any question about your document. Powered by <strong>Groq Llama 4 Scout</strong> and <strong>Cohere Embeddings</strong>.
               </p>
@@ -575,7 +723,7 @@ export default function App() {
                 </div>
               )}
               {chunkCount === 0 && (
-                <button className="open-sidebar-hint" onClick={() => setSidebarOpen(true)}>
+                <button className="open-sidebar-hint" onClick={() => fileInputRef.current?.click()}>
                   <Upload size={15} /> Upload a document to get started
                 </button>
               )}
@@ -589,7 +737,7 @@ export default function App() {
           ) : (
             <div className="quiz-container">
               {chunkCount === 0 ? (
-                <div className="empty-sticky-state">
+                <div className="empty-sticky-state" style={{ cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()}>
                   <Upload size={40} className="empty-sticky-icon" />
                   <p>Upload a document to generate a quiz</p>
                 </div>
@@ -694,31 +842,11 @@ export default function App() {
         </div>
 
         {/* ── Input Bar ── */}
-        <div className="chat-input-bar">
-          {lastUpload && chunkCount > 0 && (
-            <div className="input-context-chip animation-fade-up">
-              <span className="context-label">Active Context:</span>
-              <div className="context-value">
-                {lastUpload.type === 'pdf' ? <FileText size={12} /> : <MessageSquare size={12} />}
-                <span>{lastUpload.type === 'pdf' ? lastUpload.name : lastUpload.text.slice(0, 30) + '...'}</span>
-              </div>
-              <button className="context-close" onClick={() => setLastUpload(null)} title="Clear context preview">
-                <X size={10} />
-              </button>
-            </div>
-          )}
-          <div className="input-row">
-            <div className="model-selector-wrapper">
-              <select className="model-selector" value={model} onChange={(e) => setModel(e.target.value)}>
-                {MODELS.map(m => (
-                  <option key={m.id} value={m.id}>{m.label}</option>
-                ))}
-              </select>
-              <ChevronDown className="model-selector-icon" size={12} />
-            </div>
+        <div className="chat-input-container">
+          <div className="chat-input-card">
             <textarea
               ref={textareaRef}
-              className="chat-textarea"
+              className="chat-textarea-v2"
               rows={1}
               placeholder={chunkCount > 0 ? 'Ask anything about your document…' : 'Upload a document first, then ask questions…'}
               value={question}
@@ -727,22 +855,156 @@ export default function App() {
               disabled={loading || chunkCount === 0}
               onInput={(e) => {
                 e.target.style.height = 'auto'
-                e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
+                e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px'
               }}
             />
-            <button
-              id="send-btn"
-              className="send-btn"
-              onClick={handleSend}
-              disabled={loading || !question.trim() || chunkCount === 0}
-              title="Send (Enter)"
-            >
-              {loading
-                ? <div className="spinner" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }} />
-                : <Send size={16} />}
-            </button>
+            
+            <div className="chat-input-actions">
+              <div className="chat-input-actions-left">
+                <div className="attach-wrapper">
+                  <button 
+                    className={`action-icon-btn ${attachMenuOpen ? 'active' : ''}`}
+                    onClick={() => setAttachMenuOpen(!attachMenuOpen)}
+                    title="Add attachment"
+                  >
+                    <Plus size={22} />
+                  </button>
+                  
+                  {attachMenuOpen && (
+                    <>
+                      <div className="attach-menu-overlay" onClick={() => setAttachMenuOpen(false)} />
+                      <div className="attach-menu animation-fade-up">
+                        <button className="attach-menu-item" onClick={() => { fileInputRef.current?.click(); setAttachMenuOpen(false); }}>
+                          <FileText size={14} />
+                          <span>Upload PDF</span>
+                        </button>
+                        <button className="attach-menu-item" onClick={() => { setTextModalOpen(true); setAttachMenuOpen(false); }}>
+                          <MessageSquare size={14} />
+                          <span>Paste Text</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Hidden file input */}
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                accept="application/pdf"
+                onChange={handleFileUpload}
+              />
+
+              {/* Text Upload Modal */}
+              {textModalOpen && (
+                <div className="modal-overlay">
+                  <div className="modal-content animation-fade-up">
+                    <div className="modal-header">
+                      <h3>Paste Document Text</h3>
+                      <button className="modal-close" onClick={() => setTextModalOpen(false)}><X size={18} /></button>
+                    </div>
+                    <textarea 
+                      className="modal-textarea" 
+                      placeholder="Paste your text here..." 
+                      value={pastedText}
+                      onChange={(e) => setPastedText(e.target.value)}
+                    />
+                    <div className="modal-footer">
+                      <button className="btn-secondary" onClick={() => setTextModalOpen(false)}>Cancel</button>
+                      <button className="btn-primary" onClick={handleTextUpload} disabled={loading || !pastedText.trim()}>
+                        {loading ? 'Uploading...' : 'Upload Text'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Settings Modal */}
+              {settingsOpen && (
+                <div className="modal-overlay">
+                  <div className="modal-content animation-fade-up" style={{ maxWidth: 400 }}>
+                    <div className="modal-header">
+                      <h3>Settings</h3>
+                      <button className="modal-close" onClick={() => setSettingsOpen(false)}><X size={18} /></button>
+                    </div>
+                    
+                    <div className="settings-section">
+                      <div className="sidebar-label">Appearance</div>
+                      <div className="theme-toggle-group">
+                        <button 
+                          className={`theme-btn ${theme === 'light' ? 'active' : ''}`}
+                          onClick={() => setTheme('light')}
+                        >
+                          <Sun size={16} />
+                          <span>Light</span>
+                        </button>
+                        <button 
+                          className={`theme-btn ${theme === 'dark' ? 'active' : ''}`}
+                          onClick={() => setTheme('dark')}
+                        >
+                          <Moon size={16} />
+                          <span>Dark</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="settings-section" style={{ marginTop: 24 }}>
+                      <div className="sidebar-label">System</div>
+                      <button className="btn-secondary" onClick={handleClear} style={{ width: '100%', justifyContent: 'center' }}>
+                        <Trash2 size={14} /> Clear All Document Data
+                      </button>
+                    </div>
+
+                    <div className="modal-footer" style={{ marginTop: 12 }}>
+                      <button className="btn-primary" onClick={() => setSettingsOpen(false)} style={{ width: '100%' }}>Done</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="chat-input-actions-right">
+                <div className="model-wrapper">
+                  <button 
+                    className={`action-icon-btn ${modelMenuOpen ? 'active' : ''}`}
+                    onClick={() => setModelMenuOpen(!modelMenuOpen)}
+                    title="Change model"
+                  >
+                    <Settings2 size={18} />
+                  </button>
+                  
+                  {modelMenuOpen && (
+                    <>
+                      <div className="attach-menu-overlay" onClick={() => setModelMenuOpen(false)} />
+                      <div className="attach-menu right animation-fade-up">
+                        <div className="attach-menu-label">AI Model</div>
+                        {MODELS.map(m => (
+                          <button 
+                            key={m.id} 
+                            className={`attach-menu-item ${model === m.id ? 'active' : ''}`}
+                            onClick={() => { setModel(m.id); setModelMenuOpen(false); }}
+                          >
+                            <Sparkles size={14} />
+                            <span>{m.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <button
+                  id="send-btn"
+                  className={`send-btn-v2 ${loading || !question.trim() || chunkCount === 0 ? 'disabled' : ''}`}
+                  onClick={handleSend}
+                  disabled={loading || !question.trim() || chunkCount === 0}
+                >
+                  {loading ? <div className="spinner-v2" /> : <Send size={18} />}
+                </button>
+              </div>
+            </div>
           </div>
-          <p className="input-hint">Press Enter to send · Shift+Enter for new line</p>
         </div>
       </main>
     </div>

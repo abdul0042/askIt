@@ -9,7 +9,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { CohereClient } = require('cohere-ai');
 const Groq = require('groq-sdk');
-const { db, collection, getDocs, doc, setDoc, writeBatch, query, where } = require('./firebase');
+const { db, collection, getDocs, doc, setDoc, addDoc, writeBatch, query, where } = require('./firebase');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -285,6 +285,19 @@ app.post('/chat', requireAuth, async (req, res) => {
 
     const answer = completion.choices[0]?.message?.content || 'No response generated.';
 
+    // ─── Save to History ───
+    try {
+      await addDoc(collection(db, "chats"), {
+        userId: req.user.id,
+        question,
+        answer,
+        model,
+        timestamp: new Date().toISOString()
+      });
+    } catch (saveErr) {
+      console.error('Failed to save chat history:', saveErr.message);
+    }
+
     res.json({
       answer,
       sources: topChunks.map((c) => ({ text: c.text, score: Math.round(c.score * 100) / 100 })),
@@ -372,6 +385,26 @@ app.delete('/clear', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[/clear]', err.message);
     res.status(500).json({ error: 'Failed to clear vectors.' });
+  }
+});
+
+/** GET /history — protected */
+app.get('/history', requireAuth, async (req, res) => {
+  try {
+    const q = query(
+      collection(db, "chats"),
+      where("userId", "==", req.user.id)
+    );
+    const snapshot = await getDocs(q);
+    const history = snapshot.docs.map(d => ({
+      id: d.id,
+      ...d.data()
+    })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    res.json(history);
+  } catch (err) {
+    console.error('[/history]', err.message);
+    res.status(500).json({ error: 'Failed to fetch history.' });
   }
 });
 
