@@ -21,8 +21,14 @@ const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
+// ✅ Replace with this
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174'],
+  origin: [
+    'http://localhost:5173', 
+    'http://localhost:5174',
+    'https://askit.vercel.app',
+    'https://askit-git-main-mabdulsalam034-2083s-projects.vercel.app'
+  ],
   methods: ['GET', 'POST', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
