@@ -6,7 +6,8 @@ import {
   Trash2, Sparkles, BookOpen, LogOut, Menu, ChevronLeft, Dices, ArrowRight, ArrowLeft, RotateCcw,
   Download, Brain, Plus, Settings2, PlusCircle, Settings, Sun, Moon
 } from 'lucide-react'
-import logo from './logo.png'
+import logo from './logo.jpeg'
+import logoFull from './logo-full.jpeg'
 import ReactMarkdown from 'react-markdown'
 import { api, getUser, clearAuth } from './auth'
 
@@ -261,11 +262,10 @@ export default function App() {
   const [textModalOpen, setTextModalOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [theme, setTheme] = useState(() => localStorage.getItem('app-theme') || 'dark')
-  const [pastedText, setPastedText] = useState('')
   const [historyLoading, setHistoryLoading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState(null)
   const [showModeSwitcher, setShowModeSwitcher] = useState(true)
-  const [isSplashActive, setIsSplashActive] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
   const lastScrollY = useRef(0)
   const fileInputRef = useRef(null)
 
@@ -273,6 +273,11 @@ export default function App() {
     document.body.className = theme === 'light' ? 'light-theme' : ''
     localStorage.setItem('app-theme', theme)
   }, [theme])
+
+  useEffect(() => {
+    const timer = setTimeout(() => setInitialLoading(false), 2000)
+    return () => clearTimeout(timer)
+  }, [])
 
   const fetchHistory = useCallback(async () => {
     setHistoryLoading(true)
@@ -292,13 +297,8 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    // Initial data fetch and splash timeout
-    const init = async () => {
-      await Promise.all([fetchHistory(), fetchStatus()])
-      setTimeout(() => setIsSplashActive(false), 1500) // Minimum 1.5s splash
-    }
-    init()
-  }, [fetchHistory, fetchStatus])
+    fetchHistory()
+  }, [fetchHistory])
 
   const touchStartX = useRef(0)
   const touchEndX = useRef(0)
@@ -563,15 +563,12 @@ export default function App() {
     'Explain the methodology',
   ]
 
-  if (isSplashActive) {
+  if (initialLoading) {
     return (
       <div className="splash-screen">
-        <div className="splash-content animation-fade-up">
-          <img src={logo} alt="askIt Logo" className="splash-logo" />
-          <div className="splash-loader">
-            <div className="splash-loader-bar" />
-          </div>
-          <p className="splash-text">Initialising AI RAG engine...</p>
+        <img src={logoFull} alt="askIt" className="splash-logo" />
+        <div className="splash-loader">
+          <div className="splash-progress" />
         </div>
       </div>
     )
@@ -592,7 +589,7 @@ export default function App() {
           </button>
           <div className="header-brand">
             <div className="brand-icon">
-              <img src={logo} alt="askIt Logo" style={{ width: 30, height: 30, objectFit: 'contain' }} />
+              <img src={logo} alt="askIt Logo" style={{ width: 24, height: 24, objectFit: 'contain' }} />
             </div>
             <span className="brand-name">askIt</span>
             <span className="brand-badge">RAG · Llama 4 Scout</span>

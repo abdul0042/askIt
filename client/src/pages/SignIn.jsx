@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, AlertCircle, Sparkles } from 'lucide-react'
-import logo from '../logo.png'
+import logo from '../logo.jpeg'
 import { setAuth, api } from '../auth'
 
 export default function SignIn() {
@@ -41,7 +41,7 @@ export default function SignIn() {
         {/* Brand */}
         <div className="auth-brand">
           <div className="auth-brand-icon">
-            <img src={logo} alt="askIt Logo" style={{ width: 48, height: 48, objectFit: 'contain' }} />
+            <img src={logo} alt="askIt Logo" style={{ width: 32, height: 32, objectFit: 'contain' }} />
           </div>
           <span className="auth-brand-name">askIt</span>
         </div>
