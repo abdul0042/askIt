@@ -22,7 +22,7 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'https://askitlm.netlify.app', 'https://askit-git-main-mabdulsalam034-2083s-projects.vercel.app','https://askitlm.vercel.app'],
+  origin: ['http://localhost:5173', 'http://localhost:5174', 'https://askitlm.netlify.app', 'https://askit-git-main-mabdulsalam034-2083s-projects.vercel.app'],
   methods: ['GET', 'POST', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
