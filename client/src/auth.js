@@ -30,7 +30,9 @@ export function isAuthenticated() {
 }
 
 /** Axios instance with auth header auto-injected */
-export const api = axios.create()
+export const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+})
 
 api.interceptors.request.use((config) => {
   const token = getToken()

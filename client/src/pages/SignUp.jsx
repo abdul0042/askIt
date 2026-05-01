@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import axios from 'axios'
 import { Mail, Lock, User, Eye, EyeOff, AlertCircle, Sparkles } from 'lucide-react'
 import logo from '../logo.png'
-import { setAuth } from '../auth'
+import { setAuth, api } from '../auth'
 
 export default function SignUp() {
   const navigate = useNavigate()
@@ -30,7 +29,7 @@ export default function SignUp() {
     setLoading(true)
     setError('')
     try {
-      const res = await axios.post('/auth/signup', form)
+      const res = await api.post('/auth/signup', form)
       setAuth(res.data.token, res.data.user)
       navigate('/')
     } catch (err) {
