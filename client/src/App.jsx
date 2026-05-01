@@ -265,6 +265,7 @@ export default function App() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState(null)
   const [showModeSwitcher, setShowModeSwitcher] = useState(true)
+  const [isSplashActive, setIsSplashActive] = useState(true)
   const lastScrollY = useRef(0)
   const fileInputRef = useRef(null)
 
@@ -291,8 +292,13 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    fetchHistory()
-  }, [fetchHistory])
+    // Initial data fetch and splash timeout
+    const init = async () => {
+      await Promise.all([fetchHistory(), fetchStatus()])
+      setTimeout(() => setIsSplashActive(false), 1500) // Minimum 1.5s splash
+    }
+    init()
+  }, [fetchHistory, fetchStatus])
 
   const touchStartX = useRef(0)
   const touchEndX = useRef(0)
@@ -557,6 +563,20 @@ export default function App() {
     'Explain the methodology',
   ]
 
+  if (isSplashActive) {
+    return (
+      <div className="splash-screen">
+        <div className="splash-content animation-fade-up">
+          <img src={logo} alt="askIt Logo" className="splash-logo" />
+          <div className="splash-loader">
+            <div className="splash-loader-bar" />
+          </div>
+          <p className="splash-text">Initialising AI RAG engine...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="app-layout">
       {/* ── Header ─────────────────────────────────────────────── */}
@@ -572,7 +592,7 @@ export default function App() {
           </button>
           <div className="header-brand">
             <div className="brand-icon">
-              <img src={logo} alt="askIt Logo" style={{ width: 24, height: 24, objectFit: 'contain' }} />
+              <img src={logo} alt="askIt Logo" style={{ width: 30, height: 30, objectFit: 'contain' }} />
             </div>
             <span className="brand-name">askIt</span>
             <span className="brand-badge">RAG · Llama 4 Scout</span>

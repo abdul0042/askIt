@@ -41,7 +41,7 @@ export default function SignIn() {
         {/* Brand */}
         <div className="auth-brand">
           <div className="auth-brand-icon">
-            <img src={logo} alt="askIt Logo" style={{ width: 32, height: 32, objectFit: 'contain' }} />
+            <img src={logo} alt="askIt Logo" style={{ width: 48, height: 48, objectFit: 'contain' }} />
           </div>
           <span className="auth-brand-name">askIt</span>
         </div>

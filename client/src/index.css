@@ -113,14 +113,15 @@ body {
 }
 
 .brand-icon {
-  width: 36px;
-  height: 36px;
-  background: #1a1a1a;
-  border-radius: var(--radius-sm);
+  width: 34px;
+  height: 34px;
+  background: transparent;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: none;
+  filter: drop-shadow(0 0 8px rgba(0, 150, 255, 0.4));
 }
 
 .brand-name {
@@ -3044,5 +3045,67 @@ body {
 .history-empty-state span {
   font-size: 12px;
   opacity: 0.6;
+}
+
+
+/* --- Splash Screen ------------------------------------------------------ */
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  color: #fff;
+}
+
+.splash-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+}
+
+.splash-logo {
+  width: 280px;
+  height: auto;
+  filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.2));
+}
+
+.splash-loader {
+  width: 140px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.splash-loader-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 50%;
+  background: var(--accent);
+  border-radius: 10px;
+  animation: splashLoader 2s infinite ease-in-out;
+}
+
+.splash-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+@keyframes splashLoader {
+  0% { left: -50%; }
+  100% { left: 100%; }
 }
 
