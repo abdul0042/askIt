@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Upload, MessageSquare, FileText, X, Send,
   AlertCircle, CheckCircle2, Layers, ChevronDown, ChevronUp,
-  Trash2, Sparkles, BookOpen, LogOut, Menu, ChevronLeft, Dices, ArrowRight, ArrowLeft, RotateCcw
+  Trash2, Sparkles, BookOpen, LogOut, Menu, ChevronLeft, Dices, ArrowRight, ArrowLeft, RotateCcw, Download, Brain
 } from 'lucide-react'
 import logo from './logo.png'
 import ReactMarkdown from 'react-markdown'
