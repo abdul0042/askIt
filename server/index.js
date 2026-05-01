@@ -22,7 +22,7 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'https://askitlm.netlify.app'],
+  origin: ['http://localhost:5173', 'http://localhost:5174', 'https://askitlm.netlify.app', 'https://askit-git-main-mabdulsalam034-2083s-projects.vercel.app'],
   methods: ['GET', 'POST', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -156,11 +156,11 @@ app.post('/auth/signin', async (req, res) => {
     }
 
     const usersSnapshot = await getDocs(query(collection(db, "users"), where("email", "==", email.toLowerCase().trim())));
-    
+
     if (usersSnapshot.empty) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
-    
+
     const user = usersSnapshot.docs[0].data();
 
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
@@ -226,7 +226,7 @@ app.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
     const entries = chunks.map((text, i) => ({ text, embedding: allEmbeddings[i], userId: req.user.id }));
     const batch = writeBatch(db);
     const vectorsRef = collection(db, "vectors");
-    
+
     for (const entry of entries) {
       batch.set(doc(vectorsRef), entry);
     }
@@ -299,7 +299,7 @@ app.post('/chat', requireAuth, async (req, res) => {
 app.post('/generate-quiz', requireAuth, async (req, res) => {
   try {
     const { model = 'meta-llama/llama-4-scout-17b-16e-instruct' } = req.body;
-    
+
     const vectorsSnapshot = await getDocs(query(collection(db, "vectors"), where("userId", "==", req.user.id)));
     const store = vectorsSnapshot.docs.map(d => d.data());
     if (store.length === 0) {
@@ -338,7 +338,7 @@ ${contextText}`;
     });
 
     let answer = completion.choices[0]?.message?.content || '[]';
-    
+
     // Extract JSON array in case there are markdown code blocks
     const start = answer.indexOf('[');
     const end = answer.lastIndexOf(']');
